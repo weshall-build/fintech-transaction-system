@@ -11,6 +11,8 @@ import com.payment.transactionTracker.entity.User;
 public interface UserRepository extends JpaRepository<User, Integer> {
 
 	long countByEmail(String email);
+	
+	User findByEmail(String email);
 
 	List<User> findAll();
 }

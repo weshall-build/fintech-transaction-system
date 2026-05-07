@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
+import com.payment.transactionTracker.model.LoginRequest;
 import com.payment.transactionTracker.model.RegisterRequest;
 import com.payment.transactionTracker.service.AuthService;
 
@@ -22,7 +22,7 @@ public class LoginController {
 	@PostMapping("/auth/register")
 	public ResponseEntity<Object> registerUser(@Valid @RequestBody RegisterRequest userRequest) {
 
-		if (authService.alreadyRegistered(userRequest)) {
+		if (authService.alreadyRegistered(userRequest)==0l) {
 			if (authService.createUser(userRequest)) {
 				return new ResponseEntity<>("User Created", HttpStatus.OK);
 			} else {
@@ -32,4 +32,14 @@ public class LoginController {
 			return new ResponseEntity<>("USER ALREADY REGISTERED", HttpStatus.BAD_REQUEST);
 		}
 	}
+	
+	@PostMapping("/auth/login")
+	public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest req) {
+		if (authService.loginUser(req)) {
+			return new ResponseEntity<>("LOGIN SUCCESSFULL", HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>("INVALID EMAIL OR PASSWORD", HttpStatus.NOT_FOUND);
+		}
+	}
+	
 }
