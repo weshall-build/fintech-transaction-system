@@ -18,7 +18,7 @@ import lombok.Setter;
 public class Account {
 	@Id
 	@GeneratedValue
-	String id;
+	Integer id;
 	Double balance;
 	String status;
 	@ManyToOne
