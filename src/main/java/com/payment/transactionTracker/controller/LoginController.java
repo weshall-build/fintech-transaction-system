@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.payment.transactionTracker.model.LoginRequest;
 import com.payment.transactionTracker.model.RegisterRequest;
 import com.payment.transactionTracker.service.AuthService;
+import com.payment.transactionTracker.service.JWTService;
 
 import jakarta.validation.Valid;
 
@@ -18,6 +19,9 @@ public class LoginController {
 
 	@Autowired
 	AuthService authService;
+	
+	@Autowired
+	JWTService jwtService;
 
 	@PostMapping("/auth/register")
 	public ResponseEntity<Object> registerUser(@Valid @RequestBody RegisterRequest userRequest) {
@@ -36,10 +40,14 @@ public class LoginController {
 	@PostMapping("/auth/login")
 	public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest req) {
 		if (authService.loginUser(req)) {
-			return new ResponseEntity<>("LOGIN SUCCESSFULL", HttpStatus.OK);
+			String token = jwtService.generateToken(req.getEmail());
+			return new ResponseEntity<>(token, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>("INVALID EMAIL OR PASSWORD", HttpStatus.NOT_FOUND);
 		}
 	}
+	
+
+	
 	
 }
