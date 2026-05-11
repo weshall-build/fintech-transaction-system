@@ -26,8 +26,10 @@ public class FraudDetectionService {
 		} else {
 			Long currentTImeStamp = System.currentTimeMillis();
 			while (!timeStamp.isEmpty() && currentTImeStamp - timeStamp.peek() >= 60000) {
-				timeStamp.remove();
+				timeStamp.poll();
 			}
+			timeStamp.add(currentTImeStamp);
+			userAndTimstampsOfTransation.put(email, timeStamp);
 		}
 
 		if (timeStamp.size() >= 5) {
