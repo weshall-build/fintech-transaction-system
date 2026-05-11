@@ -1,5 +1,7 @@
 package com.payment.transactionTracker.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,9 @@ public class TransactionService {
 	@Autowired
 	ValidateService valService;
 
+	@Autowired
+	FraudDetectionService fraudService;
+	
 	@SuppressWarnings("static-access")
 	@Transactional
 	public void processTransaction(TransactionRequest request, SecurityContextHolder context) {
@@ -45,19 +50,22 @@ public class TransactionService {
 		Optional<Account> senderAccount = accountRepo.findById(request.getFromAcountId());
 		Optional<Account> receiverAccount = accountRepo.findById(request.getToAccountId());
 
-		valService.validateBasicAccountInfo(senderAccount, receiverAccount);
+		valService.checkIfAccountExistsOrNot(senderAccount, true);
+		valService.checkIfAccountExistsOrNot(receiverAccount, false);
 		User sendingUser = senderAccount.get().getUser();
 		valService.userValidation(sendingUser, emailFromJwt);
 		valService.validateSelfTransfer(request);
 		valService.validateAmount(request, senderAccount);
 
+		fraudService.checkLastSetOfTransactions(emailFromJwt);
 		transactionDto.transactionFromSenderToReceiver(request, senderAccount.get(), receiverAccount.get());
 		accountRepo.save(senderAccount.get());
 		accountRepo.save(receiverAccount.get());
 
 	}
 
-	public void transactionService(TransactionRequest request, SecurityContextHolder context) throws Exception {
+	public void processTransactionAndSaveHistory(TransactionRequest request, SecurityContextHolder context)
+			throws Exception {
 		try {
 			this.processTransaction(request, context);
 			TransactionHistory history = transactionDto.transactionHistoryDto(request);
@@ -69,7 +77,21 @@ public class TransactionService {
 			history.setFailureReason(e.getMessage());
 			historyRepo.save(history);
 			throw new Exception(e);
-
 		}
+
+	}
+
+	public List<TransactionHistory> fetchTransactionHistoryBasedOnAcountId(Integer accountId,
+			SecurityContextHolder contextHolder) {
+
+		@SuppressWarnings("static-access")
+		String emailFromJwt = contextHolder.getContext().getAuthentication().getName();
+		Optional<Account> currentAccount = accountRepo.findById(accountId);
+		valService.checkIfAccountExistsOrNot(currentAccount, true);
+		User currentUser = currentAccount.get().getUser();
+		valService.userValidation(currentUser, emailFromJwt);
+		List<TransactionHistory> listOftransactionHistoryByAcountId = historyRepo
+				.findBySenderAccountIdOrReceiverAccountId(accountId,accountId);
+		return listOftransactionHistoryByAcountId;
 	}
 }

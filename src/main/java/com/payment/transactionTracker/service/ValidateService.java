@@ -14,19 +14,22 @@ import com.payment.transactionTracker.model.TransactionRequest;
 
 @Service
 public class ValidateService {
-	public void validateBasicAccountInfo(Optional<Account> senderAccount, Optional<Account> receiverAccount) {
-		if (senderAccount.isEmpty()) {
-			throw new AccountNotFoundException("sender acount not found");
-		}
-		if (receiverAccount.isEmpty()) {
-			throw new AccountNotFoundException("receiver acount not found");
+//need to change the exception type to something common for both the methods 
+
+	public void checkIfAccountExistsOrNot(Optional<Account> account, boolean isSender) {
+		if (account.isEmpty()) {
+			if (isSender) {
+				throw new AccountNotFoundException("Invalid Account Access");
+			} else {
+				throw new AccountNotFoundException("Invalid Destination Account");
+			}
 		}
 	}
 
 	public void userValidation(User sendingUser, String emailFromJwt) {
 		if (sendingUser != null && sendingUser.getEmail() != null
 				&& !sendingUser.getEmail().equalsIgnoreCase(emailFromJwt)) {
-			throw new UnauthorizedTransferException("this account Doesnot belongs to you");
+			throw new AccountNotFoundException("Invalid Account Access");
 		}
 	}
 
