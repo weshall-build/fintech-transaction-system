@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.payment.transactionTracker.dto.LoginMapper;
 import com.payment.transactionTracker.entity.Account;
 import com.payment.transactionTracker.entity.User;
+import com.payment.transactionTracker.exception.UserRegistrationAndLoginException;
 import com.payment.transactionTracker.model.LoginRequest;
 import com.payment.transactionTracker.model.RegisterRequest;
 import com.payment.transactionTracker.repository.AcountRepository;
@@ -45,19 +46,18 @@ public class AuthService {
 			log.info("Account Created : {} ", account);
 			return true;
 		} catch (Exception e) {
-			log.error("Exception occured while creating the USER : {} ", user);
+			log.error("Exception occured while creating the USER : {} , Exception e : {} ", user,e);
 			return false;
 		}
 	}
 	
-	public boolean loginUser(LoginRequest reqq) {
+	public void loginUser(LoginRequest reqq) {
 		User user = userRepo.findByEmail(reqq.getEmail());
 		if (user == null) {
-			return false;
+			throw new UserRegistrationAndLoginException("Invalid missing email or password");
 		}
 		if (!passwordEncoder.matches(reqq.getPassword(), user.getPassword())) {
-			return false;
+			throw new UserRegistrationAndLoginException("Invalid missing email or password");
 		}
-		return true;
 	}
 }

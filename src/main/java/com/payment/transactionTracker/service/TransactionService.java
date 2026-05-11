@@ -10,6 +10,10 @@ import com.payment.transactionTracker.dto.TransactionDto;
 import com.payment.transactionTracker.entity.Account;
 import com.payment.transactionTracker.entity.TransactionHistory;
 import com.payment.transactionTracker.entity.User;
+import com.payment.transactionTracker.exception.AccountNotFoundException;
+import com.payment.transactionTracker.exception.InsufficientBalanceException;
+import com.payment.transactionTracker.exception.SelfTransferRestrictedException;
+import com.payment.transactionTracker.exception.UnauthorizedTransferException;
 import com.payment.transactionTracker.model.TransactionRequest;
 import com.payment.transactionTracker.repository.AcountRepository;
 import com.payment.transactionTracker.repository.TransactionHistoryRepository;
@@ -26,53 +30,60 @@ public class TransactionService {
 
 	@Autowired
 	TransactionDto transactionDto;
-	
+
 	@Autowired
 	TransactionHistoryRepository historyRepo;
 
 	@SuppressWarnings("static-access")
 	@Transactional
-	public boolean processTransaction(TransactionRequest request, SecurityContextHolder context) {
-		try {
+	public void processTransaction(TransactionRequest request, SecurityContextHolder context) {
 
-			String emailFromJwt = context.getContext().getAuthentication().getName();
-			Optional<Account> senderAccount = accountRepo.findById(request.getFromAcountId());
-			Optional<Account> receiverAccount = accountRepo.findById(request.getToAccountId());
-			User sendingUser = senderAccount.get().getUser();
-			if (request.getFromAcountId() == request.getToAccountId()) {
-				return false;
-			}
-			if (sendingUser != null && sendingUser.getEmail() != null
-					&& !sendingUser.getEmail().equalsIgnoreCase(emailFromJwt)) {
-				return false;
-			}
-			if (request.getAmount() > senderAccount.get().getBalance()) {
-				return false;
-			}
+		String emailFromJwt = context.getContext().getAuthentication().getName();
+		Optional<Account> senderAccount = accountRepo.findById(request.getFromAcountId());
+		Optional<Account> receiverAccount = accountRepo.findById(request.getToAccountId());
 
-			transactionDto.transactionFromSenderToReceiver(request, senderAccount.get(), receiverAccount.get());
-			accountRepo.save(senderAccount.get());
-			accountRepo.save(receiverAccount.get());
-
-			return true;
-		} catch (Exception e) {
-			log.error("EXCEPTION OCCURED WHILE TRANSFER FROM ONE ACCOUNT TO ANOTHER");
-			return false;
+		if (senderAccount.isEmpty()) {
+			throw new AccountNotFoundException("sender acount not found");
 		}
-	}
-	
-	public boolean transactionService(TransactionRequest request, SecurityContextHolder context) {
+		if (receiverAccount.isEmpty()) {
+			throw new AccountNotFoundException("receiver acount not found");
+		}
 
-		boolean success=this.processTransaction(request,context);
-		if(success) {
-			TransactionHistory history=transactionDto.transactionHistoryDto(request);
+		if (request.getAmount() <= 0) {
+			throw new InsufficientBalanceException("BKL GAREEB");
+		}
+
+		User sendingUser = senderAccount.get().getUser();
+		if (request.getFromAcountId().equals(request.getToAccountId())) {
+			throw new SelfTransferRestrictedException("cant transfer to yourself");
+		}
+		if (sendingUser != null && sendingUser.getEmail() != null
+				&& !sendingUser.getEmail().equalsIgnoreCase(emailFromJwt)) {
+			throw new UnauthorizedTransferException("this account Doesnot belongs to you");
+		}
+		if (request.getAmount() > senderAccount.get().getBalance()) {
+			throw new InsufficientBalanceException("paise illa");
+		}
+
+		transactionDto.transactionFromSenderToReceiver(request, senderAccount.get(), receiverAccount.get());
+		accountRepo.save(senderAccount.get());
+		accountRepo.save(receiverAccount.get());
+
+	}
+
+	public void transactionService(TransactionRequest request, SecurityContextHolder context) throws Exception {
+		try {
+			this.processTransaction(request, context);
+			TransactionHistory history = transactionDto.transactionHistoryDto(request);
 			history.setStatus("SUCCESS");
 			historyRepo.save(history);
-		}else {
-			TransactionHistory history=transactionDto.transactionHistoryDto(request);
+		} catch (Exception e) {
+			TransactionHistory history = transactionDto.transactionHistoryDto(request);
 			history.setStatus("FAIL");
+			history.setFailureReason(e.getMessage());
 			historyRepo.save(history);
+			throw new Exception(e);
+
 		}
-		return true;
 	}
 }

@@ -29,13 +29,14 @@ public class TransactionDto {
 		Optional<Account> account = accountRepo.findById(request.getFromAcountId());
 		Optional<Account> receiverAccount = accountRepo.findById(request.getToAccountId());
 		TransactionHistory tHistory = new TransactionHistory();
-		tHistory.setAmount(request.getAmount());
+		tHistory.setAmount(request.getAmount() != null ? request.getAmount() : null);
 		tHistory.setCreateAt(new Date());
-		tHistory.setSenderAccountId(request.getFromAcountId());
-		tHistory.setReceiverAccountId(request.getToAccountId());
-		tHistory.setSenderEmail(account.get().getUser().getEmail());
-		tHistory.setReceiverEmail(receiverAccount.get().getUser().getEmail());
-		if (tHistory.getSenderEmail().equals(tHistory.getReceiverEmail())) {
+		tHistory.setSenderAccountId(request.getFromAcountId() != null ? request.getFromAcountId() : null);
+		tHistory.setReceiverAccountId(request.getToAccountId() != null ? request.getToAccountId() : null);
+		tHistory.setSenderEmail(!account.isEmpty() ? account.get().getUser().getEmail() : null);
+		tHistory.setReceiverEmail(!receiverAccount.isEmpty() ? receiverAccount.get().getUser().getEmail() : null);
+		if (tHistory.getSenderEmail() != null && tHistory.getReceiverEmail() != null
+				&& tHistory.getSenderEmail().equals(tHistory.getReceiverEmail())) {
 			tHistory.setSelfTransaction(true);
 		} else {
 			tHistory.setSelfTransaction(false);

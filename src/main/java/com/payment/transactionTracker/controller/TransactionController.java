@@ -16,15 +16,12 @@ public class TransactionController {
 
 	@Autowired
 	TransactionService transactionService;
-	
+
 	@PutMapping("/transfer")
 	public ResponseEntity<?> transactMoneyBetweenAccounts(@RequestBody TransactionRequest request,
-			SecurityContextHolder contextHolder) {
-		boolean transactionSuccessfull=transactionService.transactionService(request, contextHolder);
-		if(transactionSuccessfull)
-		return new ResponseEntity<>("done ji", HttpStatus.OK);
-		else
-		return new ResponseEntity<>("not done ji",HttpStatus.BAD_REQUEST);
+			SecurityContextHolder contextHolder) throws Exception {
+		transactionService.transactionService(request, contextHolder);
+		return new ResponseEntity<>("Transaction Done ji", HttpStatus.OK);
 	}
 
 }

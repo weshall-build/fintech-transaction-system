@@ -25,4 +25,5 @@ public class TransactionHistory {
 	Double amount;
 	Date createAt;
 	String status;
+	String failureReason;
 }
