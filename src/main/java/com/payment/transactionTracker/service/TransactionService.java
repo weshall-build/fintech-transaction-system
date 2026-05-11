@@ -34,6 +34,9 @@ public class TransactionService {
 	@Autowired
 	TransactionHistoryRepository historyRepo;
 
+	@Autowired
+	ValidateService valService;
+
 	@SuppressWarnings("static-access")
 	@Transactional
 	public void processTransaction(TransactionRequest request, SecurityContextHolder context) {
@@ -42,28 +45,11 @@ public class TransactionService {
 		Optional<Account> senderAccount = accountRepo.findById(request.getFromAcountId());
 		Optional<Account> receiverAccount = accountRepo.findById(request.getToAccountId());
 
-		if (senderAccount.isEmpty()) {
-			throw new AccountNotFoundException("sender acount not found");
-		}
-		if (receiverAccount.isEmpty()) {
-			throw new AccountNotFoundException("receiver acount not found");
-		}
-
-		if (request.getAmount() <= 0) {
-			throw new InsufficientBalanceException("BKL GAREEB");
-		}
-
+		valService.validateBasicAccountInfo(senderAccount, receiverAccount);
 		User sendingUser = senderAccount.get().getUser();
-		if (request.getFromAcountId().equals(request.getToAccountId())) {
-			throw new SelfTransferRestrictedException("cant transfer to yourself");
-		}
-		if (sendingUser != null && sendingUser.getEmail() != null
-				&& !sendingUser.getEmail().equalsIgnoreCase(emailFromJwt)) {
-			throw new UnauthorizedTransferException("this account Doesnot belongs to you");
-		}
-		if (request.getAmount() > senderAccount.get().getBalance()) {
-			throw new InsufficientBalanceException("paise illa");
-		}
+		valService.userValidation(sendingUser, emailFromJwt);
+		valService.validateSelfTransfer(request);
+		valService.validateAmount(request, senderAccount);
 
 		transactionDto.transactionFromSenderToReceiver(request, senderAccount.get(), receiverAccount.get());
 		accountRepo.save(senderAccount.get());
